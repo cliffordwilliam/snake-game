@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background: yellowgreen;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      canvas {
+        border: 1px solid white;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas width="400" height="400" id="game"></canvas>
+  </body>
+  <script>
+    const CANVAS = document.getElementById("game");
+    const CONTEXT = CANVAS.getContext("2d");
+
+    const CELL = 16;
+    let frameCounter = 0; // limit fps
+
+    // ONE SNAKE BODY PART
+    const PART = {
+      // starting position
+      x: 160,
+      y: 160,
+
+      // velocity
+      velocityX: CELL,
+      velocityY: 0,
+
+      // keep track of body (added every frame)
+      body: [],
+
+      // limit how much is added to top (snake starts with 4 unit of body)
+      maxBodyLength: 4,
+    };
+
+    // apple actor
+    const APPLE = {
+      // starting position
+      x: 320,
+      y: 320,
+    };
+
+    // helper
+    function getRandomInt(min, max) {
+      // return random number in given range
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+
+    // MAIN LOOP
+    function gameLoop() {
+      // recursion at every repaint
+      requestAnimationFrame(gameLoop);
+
+      // limit 15fps
+      if (++frameCounter < 4) {
+        return;
+      }
+
+      // prevent limiter overflow
+      frameCounter = 0;
+
+      // clear canvas
+      CONTEXT.clearRect(0, 0, CANVAS.width, CANVAS.height);
+
+      // render apple
+      CONTEXT.fillStyle = "red";
+      CONTEXT.fillRect(APPLE.x, APPLE.y, CELL, CELL);
+
+      // update SNAKE HEAD pos with it's vel
+      PART.x += PART.velocityX;
+      PART.y += PART.velocityY;
+
+      // wrap horizontal
+      if (PART.x < 0) {
+        PART.x = CANVAS.width - CELL;
+      } else if (PART.x >= CANVAS.width) {
+        PART.x = 0;
+      }
+
+      // wrap vertical
+      if (PART.y < 0) {
+        PART.y = CANVAS.height - CELL;
+      } else if (PART.y >= CANVAS.height) {
+        PART.y = 0;
+      }
+
+      // record HEAD pos history
+      PART.body.unshift({ x: PART.x, y: PART.y });
+      // limit recording
+      if (PART.body.length > PART.maxBodyLength) {
+        PART.body.pop();
+      }
+
+      // render PART in body one by one from history (body)
+
+      PART.body.forEach(function (part, index) {
+        if (index === 0) {
+          CONTEXT.fillStyle = "blue";
+          CONTEXT.fillRect(part.x, part.y, CELL, CELL);
+        } else {
+          CONTEXT.fillStyle = "green";
+          CONTEXT.fillRect(part.x, part.y, CELL, CELL);
+        }
+
+        // if snake coord === apple coord
+        if (PART.x === APPLE.x && PART.y === APPLE.y) {
+          PART.maxBodyLength++;
+
+          // move apple
+          APPLE.x = getRandomInt(0, 25) * CELL;
+          APPLE.y = getRandomInt(0, 25) * CELL;
+        }
+
+        // snake head coord === one of part coord
+        for (let i = index + 1; i < PART.body.length; i++) {
+          const onePart = PART.body[i];
+          if (PART.x === onePart.x && PART.y === onePart.y) {
+            // reset the game (RESET PART PROP)
+            // starting position
+            PART.x = 160;
+            PART.y = 160;
+
+            // velocity
+            PART.velocityX = CELL;
+            PART.velocityY = 0;
+
+            // keep track of body (added every frame)
+            PART.body = [];
+
+            // limit how much is added to top (snake starts with 4 unit of body)
+            PART.maxBodyLength = 4;
+          }
+        }
+      });
+    }
+
+    // LISTEN TO KEYBOARD EVENT
+    document.addEventListener("keydown", function (event) {
+      // arrow input only
+      if (
+        event.which !== 37 &&
+        event.which !== 38 &&
+        event.which !== 39 &&
+        event.which !== 40
+      ) {
+        return;
+      }
+
+      // get direction input
+      let isLeft = event.which === 37;
+      let isUp = event.which === 38;
+      let isRight = event.which === 39;
+      let isDown = event.which === 40;
+
+      let dirX = isRight - isLeft;
+      let dirY = isDown - isUp;
+
+      // move HORIZONTALLY ONLY when moving vertically
+      if (PART.velocityY && dirX) {
+        PART.velocityX = CELL * dirX;
+        PART.velocityY = 0;
+      }
+
+      // move VERTICALLY ONLY when moving horizontally
+      if (PART.velocityX && dirY) {
+        PART.velocityY = CELL * dirY;
+        PART.velocityX = 0;
+      }
+    });
+
+    // START MAIN LOOP
+    requestAnimationFrame(gameLoop);
+  </script>
+</html>
